@@ -14,11 +14,11 @@ from payments.api import payments_router
 # api = NinjaAPI(title="Fresh Cart API", version="1.0.0")
 # api.add_router('/token', tags=['Auth'], router=obtain_pair_router)
 
-from ninja_jwt.controller import NinjaJWTDefaultController
+from ninja_jwt.controller import AsyncNinjaJWTDefaultController
 from ninja_extra import NinjaExtraAPI
 
 api = NinjaExtraAPI(title="Fresh Cart API", version="1.0.0")
-api.register_controllers(NinjaJWTDefaultController)
+api.register_controllers(AsyncNinjaJWTDefaultController)
 
 
 # Domain routers

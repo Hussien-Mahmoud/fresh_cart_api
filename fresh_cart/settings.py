@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     # Third-party
     'ninja',
     'ninja_jwt',
+    'ninja_extra',
 
     # Local apps
     'catalog',
@@ -52,6 +53,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'ninja.compatibility.files.fix_request_files_middleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -128,3 +130,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Stripe
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
+
+
+from datetime import timedelta
+NINJA_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),  # Access tokens expire in 15 minutes
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Refresh tokens expire in 7 days
+}

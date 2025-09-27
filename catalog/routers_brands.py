@@ -1,8 +1,11 @@
-from typing import List
-from asgiref.sync import sync_to_async
-from ninja import Router
-from ninja_jwt.authentication import JWTAuth
 from django.http import Http404
+from django.shortcuts import aget_object_or_404
+
+from typing import List, Optional
+from asgiref.sync import sync_to_async
+from ninja import Router, PatchDict, UploadedFile, Form, File
+from ninja_jwt.authentication import AsyncJWTAuth
+
 from .models import Brand
 from .schemas import BrandIn, BrandOut
 
@@ -11,37 +14,55 @@ router = Router(tags=["brands"])
 
 @router.get("/brands", response=List[BrandOut])
 async def list_brands(request):
-    brands = await sync_to_async(list)(Brand.objects.all().order_by("name"))
-    return [BrandOut(id=b.id, name=b.name, slug=b.slug) for b in brands]
+    brands = await sync_to_async(list)(Brand.objects.all().order_by("-updated_at"))
+    return brands
 
 
-@router.post("/brands", auth=JWTAuth(), response=BrandOut)
-async def create_brand(request, payload: BrandIn):
+@router.get("/brands/{slug}", response=BrandOut)
+async def get_brand(request, slug: str):
+    brand = await aget_object_or_404(Brand, slug=slug)
+    return brand
+
+
+@router.post("/brands", auth=AsyncJWTAuth(), response=BrandOut)
+async def create_brand(request, payload: BrandIn, image: File[UploadedFile] = None):
     if not request.user.is_staff:
         return 403, {"detail": "Forbidden"}
-    b = Brand(name=payload.name)
-    await sync_to_async(b.save)()
-    return BrandOut(id=b.id, name=b.name, slug=b.slug)
+
+    brand = Brand(name=payload.name, image=image)
+    await brand.asave()
+    return brand
 
 
-@router.put("/brands/{brand_id}", auth=JWTAuth(), response=BrandOut)
-async def update_brand(request, brand_id: int, payload: BrandIn):
+@router.put("/brands/{slug}", auth=AsyncJWTAuth(), response=BrandOut)
+async def update_brand(request, slug: str, payload: PatchDict[BrandIn], image: File[UploadedFile] = None):
     if not request.user.is_staff:
         return 403, {"detail": "Forbidden"}
-    b = await sync_to_async(Brand.objects.filter(pk=brand_id).first)()
-    if not b:
+
+    brand = await sync_to_async(Brand.objects.filter(slug=slug).first)()
+    if not brand:
         raise Http404
-    b.name = payload.name
-    await sync_to_async(b.save)()
-    return BrandOut(id=b.id, name=b.name, slug=b.slug)
+
+    for attr, value in payload.items():
+        setattr(brand, attr, value)
+
+    if image:
+        if brand.image:
+            await sync_to_async(brand.image.delete)()
+        brand.image = image
+
+    await brand.asave()
+    return brand
 
 
-@router.delete("/brands/{brand_id}", auth=JWTAuth())
-async def delete_brand(request, brand_id: int):
+@router.delete("/brands/{slug}", auth=AsyncJWTAuth())
+async def delete_brand(request, slug: str):
     if not request.user.is_staff:
         return 403, {"detail": "Forbidden"}
-    b = await sync_to_async(Brand.objects.filter(pk=brand_id).first)()
-    if not b:
+
+    brand = await sync_to_async(Brand.objects.filter(slug=slug).first)()
+    if not brand:
         raise Http404
-    await sync_to_async(b.delete)()
+
+    await brand.adelete()
     return {"success": True}
