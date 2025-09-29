@@ -127,6 +127,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Email
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'no-reply@freshcart.local')
+
 # Stripe
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
@@ -134,6 +138,8 @@ STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 
 from datetime import timedelta
 NINJA_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),  # Access tokens expire in 15 minutes
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),  # Access tokens expire in 60 minutes
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Refresh tokens expire in 7 days
 }
+
+AUTH_USER_MODEL = 'users.User'

@@ -1,7 +1,7 @@
 from ninja import NinjaAPI
 
 from catalog.api import products_router, categories_router, brands_router
-from users.api import addresses_router
+from users.api import addresses_router, auth_router
 from carts.api import cart_router
 from orders.api import orders_router
 from payments.api import payments_router
@@ -26,6 +26,7 @@ api.add_router("", products_router)
 api.add_router("", categories_router)
 api.add_router("", brands_router)
 api.add_router("", addresses_router)
+api.add_router("", auth_router)
 api.add_router("", cart_router)
 api.add_router("", orders_router)
 api.add_router("", payments_router)
