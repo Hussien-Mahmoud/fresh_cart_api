@@ -17,7 +17,7 @@ class CategoryIn(ModelSchema):
 class CategoryOut(ModelSchema):
     class Meta:
         model = Category
-        fields = ['name', 'slug', 'description']
+        fields = ['id','name', 'slug', 'description']
 
 
 # Brand
@@ -30,7 +30,7 @@ class BrandIn(ModelSchema):
 class BrandOut(ModelSchema):
     class Meta:
         model = Brand
-        fields = ['name', 'slug', 'image', 'created_at', 'updated_at']
+        fields = ['id','name', 'slug', 'image', 'created_at', 'updated_at']
 
 
 # Product images
