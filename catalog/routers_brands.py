@@ -18,9 +18,9 @@ async def list_brands(request):
     return brands
 
 
-@router.get("/brands/{slug}", response=BrandOut)
-async def get_brand(request, slug: str):
-    brand = await aget_object_or_404(Brand, slug=slug)
+@router.get("/brands/{brand_id}", response=BrandOut)
+async def get_brand(request, brand_id: int):
+    brand = await aget_object_or_404(Brand, id=brand_id)
     return brand
 
 
@@ -34,12 +34,12 @@ async def create_brand(request, payload: BrandIn, image: File[UploadedFile] = No
     return brand
 
 
-@router.put("/brands/{slug}", auth=AsyncJWTAuth(), response=BrandOut)
-async def update_brand(request, slug: str, payload: PatchDict[BrandIn], image: File[UploadedFile] = None):
+@router.put("/brands/{brand_id}", auth=AsyncJWTAuth(), response=BrandOut)
+async def update_brand(request, brand_id: int, payload: PatchDict[BrandIn], image: File[UploadedFile] = None):
     if not request.user.is_staff:
         return 403, {"detail": "Forbidden"}
 
-    brand = await sync_to_async(Brand.objects.filter(slug=slug).first)()
+    brand = await sync_to_async(Brand.objects.filter(id=brand_id).first)()
     if not brand:
         raise Http404
 
@@ -55,12 +55,12 @@ async def update_brand(request, slug: str, payload: PatchDict[BrandIn], image: F
     return brand
 
 
-@router.delete("/brands/{slug}", auth=AsyncJWTAuth())
-async def delete_brand(request, slug: str):
+@router.delete("/brands/{brand_id}", auth=AsyncJWTAuth())
+async def delete_brand(request, brand_id: int):
     if not request.user.is_staff:
         return 403, {"detail": "Forbidden"}
 
-    brand = await sync_to_async(Brand.objects.filter(slug=slug).first)()
+    brand = await sync_to_async(Brand.objects.filter(id=brand_id).first)()
     if not brand:
         raise Http404
 

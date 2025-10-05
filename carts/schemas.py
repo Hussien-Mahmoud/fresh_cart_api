@@ -1,6 +1,7 @@
 from typing import Optional, List
 from ninja import Schema
 from decimal import Decimal
+from catalog.schemas import ProductOut
 
 
 class CartItemIn(Schema):
@@ -10,9 +11,8 @@ class CartItemIn(Schema):
 
 class CartItemOut(Schema):
     product_id: int
-    product_name: str
+    product: ProductOut
     quantity: int
-    unit_price: Decimal
     line_total: Decimal
 
 

@@ -22,9 +22,9 @@ async def list_products(request):
     return qs
 
 
-@router.get("/products/{slug}", response=ProductOut)
-async def get_product(request, slug: str):
-    p = await sync_to_async(Product.objects.filter(slug=slug)
+@router.get("/products/{product_id}", response=ProductOut)
+async def get_product(request, product_id: int):
+    p = await sync_to_async(Product.objects.filter(id=product_id)
                             .select_related("category", "brand")
                             .prefetch_related("images", "ratings")
                             .annotate(average_rating=models.Avg("ratings__rating"))
@@ -62,19 +62,19 @@ async def create_product(request, payload: ProductIn):
 
 
 # todo: add images upload (for cover and product images)
-@router.put("/products/{slug}", auth=AsyncJWTAuth(), response=ProductOut)
-async def update_product(request, slug: str, payload: ProductIn):
+@router.put("/products/{product_id}", auth=AsyncJWTAuth(), response=ProductOut)
+async def update_product(request, product_id: int, payload: ProductIn):
     if not request.user.is_staff:
         return 403, {"detail": "Forbidden"}
 
-    product = await sync_to_async(Product.objects.filter(slug=slug).first)()
+    product = await sync_to_async(Product.objects.filter(id=product_id).first)()
     if not product:
         raise Http404
 
     # create or get category
     category = None
     if payload.category:
-        category = await Category.objects.aget_or_create(name=payload.category.name, slug=payload.category.slug)
+        category = await Category.objects.aget_or_create(name=payload.category.name)
     product.category = category
 
 
@@ -88,12 +88,12 @@ async def update_product(request, slug: str, payload: ProductIn):
     return await get_product(request, product.id)
 
 
-@router.delete("/products/{slug}", auth=AsyncJWTAuth())
-async def delete_product(request, slug: str):
+@router.delete("/products/{product_id}", auth=AsyncJWTAuth())
+async def delete_product(request, product_id: int):
     if not request.user.is_staff:
         return 403, {"detail": "Forbidden"}
 
-    product = await sync_to_async(Product.objects.filter(slug=slug).first)()
+    product = await sync_to_async(Product.objects.filter(id=product_id).first)()
     if not product:
         raise Http404
 

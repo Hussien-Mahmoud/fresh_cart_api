@@ -18,9 +18,9 @@ async def list_categories(request):
     return categories
 
 
-@router.get("/categories/{slug}", response=CategoryOut)
-async def get_category(request, slug:str):
-    category = await aget_object_or_404(Category, slug=slug)
+@router.get("/categories/{category_id}", response=CategoryOut)
+async def get_category(request, category_id:int):
+    category = await aget_object_or_404(Category, id=category_id)
     return category
 
 
@@ -34,12 +34,12 @@ async def create_category(request, payload: CategoryIn):
     return category
 
 
-@router.put("/categories/{slug}", auth=AsyncJWTAuth(), response=CategoryOut)
-async def update_category(request, slug: str, payload: PatchDict[CategoryIn]):
+@router.put("/categories/{category_id}", auth=AsyncJWTAuth(), response=CategoryOut)
+async def update_category(request, category_id: int, payload: PatchDict[CategoryIn]):
     if not request.user.is_staff:
         return 403, {"detail": "Forbidden"}
 
-    category = await sync_to_async(Category.objects.filter(slug=slug).first)()
+    category = await sync_to_async(Category.objects.filter(id=category_id).first)()
     if not category:
         raise Http404
 
@@ -50,12 +50,12 @@ async def update_category(request, slug: str, payload: PatchDict[CategoryIn]):
     return category
 
 
-@router.delete("/categories/{slug}", auth=AsyncJWTAuth())
-async def delete_category(request, slug: str):
+@router.delete("/categories/{category_id}", auth=AsyncJWTAuth())
+async def delete_category(request, category_id: int):
     if not request.user.is_staff:
         return 403, {"detail": "Forbidden"}
 
-    category = await sync_to_async(Category.objects.filter(slug=slug).first)()
+    category = await sync_to_async(Category.objects.filter(id=category_id).first)()
     if not category:
         raise Http404
 
