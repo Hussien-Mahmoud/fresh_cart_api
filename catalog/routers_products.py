@@ -2,8 +2,10 @@ from typing import List
 from asgiref.sync import sync_to_async
 from ninja import Router
 from ninja_jwt.authentication import AsyncJWTAuth
+
 from django.http import Http404
 from django.db import models
+
 from .models import Product, Category, Brand, ProductImage
 from .schemas import ProductIn, ProductOut
 
@@ -12,23 +14,15 @@ router = Router(tags=["products"])
 
 @router.get("/products", response=List[ProductOut])
 async def list_products(request):
-    qs = await sync_to_async(Product.objects.filter(is_active=True)
-                             .select_related("category", "brand")
-                             .prefetch_related("images", "ratings")
-                             .annotate(average_rating=models.Avg("ratings__rating"))
-                             .order_by)("-created_at")
-    if qs.exists():
-        return []
-    return qs
+    qs = Product.objects.filter(is_active=True).select_related("category", "brand").prefetch_related("images", "ratings").annotate(average_rating=models.Avg("ratings__rating")).order_by("-created_at")
+    products = await sync_to_async(list)(qs)
+    return products
 
 
 @router.get("/products/{product_id}", response=ProductOut)
 async def get_product(request, product_id: int):
-    p = await sync_to_async(Product.objects.filter(id=product_id)
-                            .select_related("category", "brand")
-                            .prefetch_related("images", "ratings")
-                            .annotate(average_rating=models.Avg("ratings__rating"))
-                            .first)()
+    qs = Product.objects.filter(id=product_id).select_related("category", "brand").prefetch_related("images", "ratings").annotate(average_rating=models.Avg("ratings__rating"))
+    p = await sync_to_async(qs.first)()
     if not p:
         raise Http404
     return p
@@ -37,13 +31,15 @@ async def get_product(request, product_id: int):
 # todo: add images upload (for cover and product images)
 @router.post("/products", auth=AsyncJWTAuth(), response=ProductOut)
 async def create_product(request, payload: ProductIn):
-    print(payload)
     if not request.user.is_staff:
         return 403, {"detail": "Forbidden"}
-    category=None
+
+    # Handle category
+    category = None
     if payload.category:
         category = await sync_to_async(Category.objects.get)(pk=payload.category)
 
+    # Handle brand
     brand = None
     if payload.brand:
         brand = await sync_to_async(Brand.objects.get)(pk=payload.brand)
@@ -71,11 +67,26 @@ async def update_product(request, product_id: int, payload: ProductIn):
     if not product:
         raise Http404
 
-    # create or get category
+    # Update product fields
+    product.name = payload.name
+    product.description = payload.description or ""
+    product.price = payload.price
+    product.stock = payload.stock
+    product.is_active = payload.is_active
+
+    # Handle category
     category = None
     if payload.category:
-        category = await Category.objects.aget_or_create(name=payload.category.name)
+        category = await sync_to_async(Category.objects.get_or_create)(name=payload.category.name)
+        category = category[0] if isinstance(category, tuple) else category
     product.category = category
+
+    # Handle brand
+    brand = None
+    if payload.brand:
+        brand = await sync_to_async(Brand.objects.get_or_create)(name=payload.brand.name)
+        brand = brand[0] if isinstance(brand, tuple) else brand
+    product.brand = brand
 
 
     # product.name = payload.name

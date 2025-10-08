@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from django.db.models import F, Sum
 
 from catalog.models import Product
 
@@ -19,6 +20,7 @@ class Coupon(models.Model):
     valid_from = models.DateTimeField(null=True, blank=True)
     valid_to = models.DateTimeField(null=True, blank=True)
 
+    @property
     def is_valid_now(self) -> bool:
         now = timezone.now()
         if not self.active:
@@ -43,20 +45,22 @@ class Cart(models.Model):
         (STATUS_ABANDONED, 'Abandoned'),
     ]
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='carts')
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cart')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_OPEN)
     coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True)
+    items = models.ManyToManyField(Product, through='CartItem')
 
     def subtotal(self):
-        return sum(item.quantity * item.unit_price for item in self.items.all())
+        return self.items.aggregate(total=Sum(F('price') * F('cartitem__quantity'), default=0))['total']
 
     def discount_amount(self):
-        if not self.coupon or not self.coupon.is_valid_now():
+        coupon = self.coupon
+        if not coupon or not coupon.is_valid_now:
             return 0
         subtotal = self.subtotal()
-        if self.coupon.discount_type == Coupon.PERCENT:
-            return subtotal * (self.coupon.amount / 100)
-        return min(self.coupon.amount, subtotal)
+        if coupon.discount_type == Coupon.PERCENT:
+            return subtotal * (coupon.amount / 100)
+        return min(coupon.amount, subtotal)
 
     def total(self):
         return self.subtotal() - self.discount_amount()
@@ -66,14 +70,16 @@ class Cart(models.Model):
 
 
 class CartItem(models.Model):
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
-    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
-        unique_together = (('cart', 'product'),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["cart", "product"], name="unique_cart_product"
+            )
+        ]
 
     def __str__(self) -> str:
         return f"{self.quantity} x {self.product.name}"
-
