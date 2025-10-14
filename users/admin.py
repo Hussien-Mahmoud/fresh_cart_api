@@ -8,5 +8,5 @@ admin.site.register(User, UserAdmin)
 
 @admin.register(Address)
 class AddressAdmin(admin.ModelAdmin):
-    list_display = ("user", "line1", "city", "country", "is_default")
-    list_filter = ("country", "is_default")
+    list_display = ("user", "line1", "line2", "city", "governorate", "phone_number", "is_default")
+    list_filter = ("city", "is_default")

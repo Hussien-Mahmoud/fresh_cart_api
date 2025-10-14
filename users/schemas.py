@@ -1,26 +1,19 @@
 from typing import Optional
-from ninja import Schema
+from ninja import Schema, ModelSchema
+from datetime import datetime
+from .models import Address
 
 
-class AddressIn(Schema):
-    line1: str
-    line2: Optional[str] = ""
-    city: str
-    state: Optional[str] = ""
-    postal_code: str
-    country: str
-    is_default: Optional[bool] = False
+class AddressIn(ModelSchema):
+    class Meta:
+        model = Address
+        exclude = ['id', 'user', 'created_at', 'updated_at', 'is_default']
 
 
-class AddressOut(Schema):
-    id: int
-    line1: str
-    line2: Optional[str]
-    city: str
-    state: Optional[str]
-    postal_code: str
-    country: str
-    is_default: bool
+class AddressOut(ModelSchema):
+    class Meta:
+        model = Address
+        exclude = ['user']
 
 
 class SignupIn(Schema):

@@ -1,6 +1,6 @@
 from typing import List
 from asgiref.sync import sync_to_async
-from ninja import Router
+from ninja import Router, PatchDict
 from ninja_jwt.authentication import AsyncJWTAuth
 
 from django.http import Http404
@@ -30,7 +30,7 @@ async def get_product(request, product_id: int):
 
 # todo: add images upload (for cover and product images)
 @router.post("/products", auth=AsyncJWTAuth(), response=ProductOut)
-async def create_product(request, payload: ProductIn):
+async def create_product(request, payload: PatchDict[ProductIn]):
     if not request.user.is_staff:
         return 403, {"detail": "Forbidden"}
 

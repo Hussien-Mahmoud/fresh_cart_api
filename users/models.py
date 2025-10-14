@@ -72,15 +72,13 @@ class User(AbstractUser):
         return self.username.split()[0]
 
 
-# todo: not filtered
 class Address(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='addresses')
     line1 = models.CharField(max_length=255)
-    line2 = models.CharField(max_length=255, blank=True)
+    line2 = models.CharField(max_length=255, null=True, blank=True)
     city = models.CharField(max_length=100)
-    state = models.CharField(max_length=100, blank=True)
-    postal_code = models.CharField(max_length=20)
-    country = models.CharField(max_length=100, default='')
+    governorate = models.CharField(max_length=100, null=True, blank=True)
+    phone_number = models.CharField(max_length=13)
     is_default = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -88,6 +86,32 @@ class Address(models.Model):
 
     class Meta:
         verbose_name_plural = 'Addresses'
+        constraints = [
+            # Ensure at most one address per user has is_default=True
+            models.UniqueConstraint(
+                fields=['user', 'is_default'],
+                condition=models.Q(is_default=True),
+                name='unique_default_address_per_user'
+            ),
+            # Validate Egyptian phone number format
+            models.CheckConstraint(
+                check=models.Q(
+                    # Format 1: +201XXXXXXXXX (13 digits total)
+                    models.Q(phone_number__regex=r'^\+201[0-9]{9}$') |
+                    # Format 2: 01XXXXXXXXX (11 digits total)
+                    models.Q(phone_number__regex=r'^01[0-9]{9}$')
+                ),
+                name='valid_egyptian_phone_number'
+            ),
+        ]
+        ordering = ['-is_default', '-updated_at']
+
+    def get_formatted_address(self):
+        text = f'{self.line1}'.strip()
+        text += f', {self.line2}'.strip() if self.line2 else ''
+        text += f', {self.city}'.strip()
+        text += f', {self.governorate}'.strip() if self.governorate else ''
+        return text
 
     def __str__(self) -> str:
         return f"{self.line1}, {self.city}"
