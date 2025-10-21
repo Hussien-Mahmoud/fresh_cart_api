@@ -6,6 +6,7 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 from urllib.parse import urlparse, parse_qsl
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,6 +25,11 @@ DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
+# ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h.strip()]
+# CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',') if o.strip()]
+# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if os.getenv('USE_SECURE_PROXY_SSL_HEADER', 'true').lower() == 'true' else None
+# USE_X_FORWARDED_HOST = True
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -37,6 +43,8 @@ INSTALLED_APPS = [
     'ninja',
     'ninja_jwt',
     'ninja_extra',
+    'cloudinary',
+    'cloudinary_storage',
 
     # Local apps
     'catalog',
@@ -124,6 +132,19 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Cloudinary Storage for media uploads
+if os.getenv('USE_CLOUDINARY', 'true').lower() == 'true':
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    CLOUDINARY_URL = os.getenv('CLOUDINARY_URL', '')
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME', ''),
+        'API_KEY': os.getenv('CLOUDINARY_API_KEY', ''),
+        'API_SECRET': os.getenv('CLOUDINARY_API_SECRET', ''),
+        'SECURE': True,
+        'OVERWRITE': False,
+        'RESOURCE_TYPES': ['image', 'video', 'raw'],
+    }
+
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -143,3 +164,45 @@ NINJA_JWT = {
 }
 
 AUTH_USER_MODEL = 'users.User'
+
+# Logging configuration for SQL queries
+if DEBUG:
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'verbose': {
+                'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+                'style': '{',
+            },
+            'sql': {
+                'format': '[%(duration).3f] %(sql)s',
+            },
+        },
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+                'formatter': 'verbose',
+            },
+            'sql_console': {
+                'class': 'logging.StreamHandler',
+                'formatter': 'sql',
+            },
+        },
+        'loggers': {
+            'django.db.backends': {
+                'handlers': ['sql_console'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+        },
+    }
+
+# Redis Cache
+REDIS_URL = os.getenv('REDIS_URL', 'redis://127.0.0.1:6379')
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL,
+    }
+}

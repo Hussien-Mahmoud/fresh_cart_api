@@ -1,7 +1,7 @@
 from typing import List
 from asgiref.sync import sync_to_async
 from ninja import Router
-from ninja_jwt.authentication import JWTAuth
+from ninja_jwt.authentication import AsyncJWTAuth
 from django.http import Http404
 from decimal import Decimal
 import stripe
@@ -15,7 +15,7 @@ from payments.models import Payment
 
 from payments.schemas import StripeCheckoutOut
 
-router = Router(auth=JWTAuth(), tags=["orders"])
+router = Router(auth=AsyncJWTAuth(), tags=["orders"])
 
 
 async def serialize_order(order: Order) -> OrderOut:
@@ -37,6 +37,16 @@ async def serialize_order(order: Order) -> OrderOut:
             for it in items
         ],
     )
+
+
+@router.get("/orders", response=List[OrderOut])
+async def list_orders(request):
+    qs = Order.objects.filter(user=request.user)
+    orders = await sync_to_async(list)(qs)
+    result: List[OrderOut] = []
+    for order in orders:
+        result.append(await serialize_order(order))
+    return result
 
 
 @router.post("/orders", response=OrderOut)
@@ -77,16 +87,6 @@ async def create_order(request, payload: OrderCreateIn):
     await sync_to_async(cart.save)()
 
     return await serialize_order(order)
-
-
-@router.get("/orders", response=List[OrderOut])
-async def list_orders(request):
-    qs = Order.objects.filter(user=request.user).order_by("-created_at")
-    orders = await sync_to_async(list)(qs)
-    result: List[OrderOut] = []
-    for order in orders:
-        result.append(await serialize_order(order))
-    return result
 
 
 @router.get("/orders/{order_id}", response=OrderOut)
