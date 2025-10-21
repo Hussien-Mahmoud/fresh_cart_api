@@ -34,7 +34,7 @@ RUN chmod +x /app/entrypoint.sh
 EXPOSE 80
 
 # Copy env file into image (can also be mounted at runtime)
-COPY .env /app/.env
+#COPY .env /app/.env
 
 # Use tini as PID 1 and run our entrypoint orchestrator
 ENTRYPOINT ["/usr/bin/tini", "--", "/app/entrypoint.sh"]
