@@ -34,8 +34,10 @@ class BrandOut(ModelSchema):
 
 
 # Product images
-class ProductImageOut(Schema):
-    image_url: str
+class ProductImageOut(ModelSchema):
+    class Meta:
+        model = ProductImage
+        fields = ['image']
 
 
 # Product rating

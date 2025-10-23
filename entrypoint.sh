@@ -11,8 +11,8 @@ if [ -f /app/.env ]; then
 fi
 
 # Apply migrations and collect static
-python manage.py makemigrations --noinput || true
-python manage.py migrate --noinput
+#python manage.py makemigrations --noinput || true
+#python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 
 # Start Redis (no persistence) in background
