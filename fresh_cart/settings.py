@@ -130,7 +130,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
-# MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Cloudinary Storage for media uploads
 # if os.getenv('USE_CLOUDINARY', 'true').lower() == 'true':
@@ -214,3 +214,6 @@ CACHES = {
         "LOCATION": REDIS_URL,
     }
 }
+
+# Default number of items in pagination for Ninja
+NINJA_PAGINATION_PER_PAGE = 10

@@ -2,10 +2,13 @@ from typing import List
 from asgiref.sync import sync_to_async
 from ninja import Router, PatchDict
 from ninja_jwt.authentication import AsyncJWTAuth
+from ninja.pagination import paginate
+from ninja.decorators import decorate_view
 
 from django.http import Http404
 from django.db import models
 from django.core.cache import cache
+from django.views.decorators.cache import cache_page
 
 from .models import Product, Category, Brand, ProductImage
 from .schemas import ProductIn, ProductOut
@@ -14,16 +17,24 @@ router = Router(tags=["products"])
 
 
 @router.get("/products", response=List[ProductOut])
+@paginate
+# @decorate_view(cache_page(1 * 60))
 async def list_products(request):
     # WARNING: cache is not fully working yet and only experimental
     cached_products = cache.get("products")
     if cached_products:
         return cached_products
-    qs = Product.objects.filter(is_active=True).select_related("category", "brand").prefetch_related("images", "ratings").annotate(average_rating=models.Avg("ratings__rating")).order_by("-created_at")
+
+    qs = Product.objects.filter(is_active=True) \
+                        .select_related("category", "brand") \
+                        .prefetch_related("images", "ratings") \
+                        .annotate(average_rating=models.Avg("ratings__rating")) \
+                        .order_by("-created_at")
+
     products = await sync_to_async(list)(qs)
     cache.set("products", products, 1 * 60)
     return products
-
+    # return qs   # if no cache
 
 @router.get("/products/{product_id}", response=ProductOut)
 async def get_product(request, product_id: int):
