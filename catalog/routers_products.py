@@ -1,9 +1,12 @@
+from functools import reduce
+
 from typing import List
 from asgiref.sync import sync_to_async
 from ninja import Router, PatchDict
 from ninja_jwt.authentication import AsyncJWTAuth
 from ninja.pagination import paginate
 from ninja.decorators import decorate_view
+from ninja import Query
 
 from django.http import Http404
 from django.db import models
@@ -12,6 +15,7 @@ from django.views.decorators.cache import cache_page
 
 from .models import Product, Category, Brand, ProductImage
 from .schemas import ProductIn, ProductOut
+from .filter_schemas import ProductFilterSchema
 
 router = Router(tags=["products"])
 
@@ -19,10 +23,12 @@ router = Router(tags=["products"])
 @router.get("/products", response=List[ProductOut])
 @paginate
 # @decorate_view(cache_page(1 * 60))
-async def list_products(request):
+async def list_products(request, filters: Query[ProductFilterSchema] = None):
     # WARNING: cache is not fully working yet and only experimental
+
+    filters_applied = reduce(lambda x, y : None if x is None and y is None else True ,filters.dict().values())
     cached_products = cache.get("products")
-    if cached_products:
+    if cached_products and not filters_applied:
         return cached_products
 
     qs = Product.objects.filter(is_active=True) \
@@ -31,9 +37,14 @@ async def list_products(request):
                         .annotate(average_rating=models.Avg("ratings__rating")) \
                         .order_by("-created_at")
 
-    products = await sync_to_async(list)(qs)
-    cache.set("products", products, 1 * 60)
-    return products
+    if filters_applied:
+        qs = filters.filter(qs)
+        return qs
+    else:
+        # cache unfiltered products
+        products = await sync_to_async(list)(qs)
+        cache.set("products", products, 1 * 60)
+        return products
     # return qs   # if no cache
 
 @router.get("/products/{product_id}", response=ProductOut)
