@@ -1,4 +1,6 @@
 from typing import Optional
+
+from asgiref.sync import sync_to_async
 from django.contrib.auth import get_user_model, aauthenticate
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import force_bytes, force_str
@@ -17,9 +19,9 @@ router = Router(tags=["Auth"])  # public and protected endpoints on same router
 
 @router.post("/auth/signup", response=TokenOut)
 async def signup(request, payload: SignupIn):
-    if User.objects.filter(email=payload.email).aexists():
+    if await User.objects.filter(email=payload.email).aexists():
         return 400, {"detail": "Email already exists"}
-    user = User.objects.create_user(
+    user = await sync_to_async(User.objects.create_user)(
         username=payload.username,
         email=payload.email,
         password=payload.password,
