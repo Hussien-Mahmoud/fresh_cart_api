@@ -48,10 +48,16 @@ class Cart(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cart')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_OPEN)
     coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True)
-    items = models.ManyToManyField(Product, through='CartItem')
+    # items = models.ManyToManyField(Product, through='CartItem')
+
+    class Meta:
+        # DB-level enforcement to prevent checked_out carts to have items is implemented via PostgreSQL triggers in a migration.
+        # No Django CheckConstraint here because related-row checks are not supported by CHECK constraints.
+        pass
+
 
     def subtotal(self):
-        return self.items.aggregate(total=Sum(F('price') * F('cartitem__quantity'), default=0))['total']
+        return sum(item.product.price * item.quantity for item in self.items.all())
 
     def discount_amount(self):
         coupon = self.coupon
@@ -70,7 +76,7 @@ class Cart(models.Model):
 
 
 class CartItem(models.Model):
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
 

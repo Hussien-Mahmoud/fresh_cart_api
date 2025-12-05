@@ -40,13 +40,23 @@ class Order(models.Model):
             models.CheckConstraint(
                 check=models.Q(address__isnull=False) | models.Q(address_text__isnull=False),
                 name='address_reference_or_address_text_required'
-            )
+            ),
+            # address can only be NULL if the order is delivered or canceled
+            models.CheckConstraint(
+                check=models.Q(status__in=['delivered', 'canceled']) | models.Q(address__isnull=False),
+                name='address_nullable_only_when_delivered_or_canceled',
+            ),
         ]
         ordering = ['-created_at']
 
     def items_total(self):
-        return OrderItem.objects.filter(order=self).aggregate(total=Sum(F('unit_price') * F('quantity'), default=0))['total']
+        # return OrderItem.objects.filter(order=self).aggregate(total=Sum(F('unit_price') * F('quantity'), default=0))['total']
+        total = 0
+        for item in self.items.all():
+            total += item.line_total
+        return total
 
+    @property
     def total(self):
         return self.items_total() - self.discount_amount
 
@@ -56,10 +66,14 @@ class Order(models.Model):
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)  # available for reference’s sake
     product_name = models.CharField(max_length=255)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField()
+
+    @property
+    def line_total(self):
+        return self.unit_price * self.quantity
 
     def __str__(self) -> str:
         return f"{self.quantity} x {self.product_name}"

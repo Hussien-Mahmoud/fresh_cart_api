@@ -2,7 +2,9 @@ from asgiref.sync import sync_to_async
 from ninja import Router
 from django.conf import settings
 import stripe
-from .models import Order, Payment
+
+from .models import Payment
+from orders.models import Order
 
 router = Router(tags=["payments"])
 

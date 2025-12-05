@@ -2,9 +2,11 @@ from typing import Optional, List
 from ninja import Schema
 from decimal import Decimal
 
+from users.schemas import AddressOut
+
 
 class OrderCreateIn(Schema):
-    address_id: int
+    address_id: Optional[int] = None
 
 
 class OrderItemOut(Schema):
@@ -19,6 +21,8 @@ class OrderOut(Schema):
     id: int
     status: str
     total_amount: Decimal
-    address_id: int
+    address: Optional[AddressOut] = None
+    address_text: str
     coupon_code: Optional[str] = None
+    discount_amount: Decimal
     items: List[OrderItemOut]

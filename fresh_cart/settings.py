@@ -45,8 +45,10 @@ INSTALLED_APPS = [
     'ninja_extra',
     'cloudinary',
     'cloudinary_storage',
+    # 'cachalot',
 
     # Local apps
+    'base',
     'catalog',
     'users',
     'carts',

@@ -11,6 +11,7 @@ from ninja import Router
 from ninja_jwt.tokens import RefreshToken
 from ninja_jwt.authentication import AsyncJWTAuth
 
+from base.schemas import ErrorSchema
 from .schemas import SignupIn, LoginIn, TokenOut, PasswordChangeIn, PasswordForgotIn, PasswordResetIn
 
 User = get_user_model()
@@ -30,7 +31,7 @@ async def signup(request, payload: SignupIn):
     return TokenOut(access=str(refresh.access_token), refresh=str(refresh))
 
 
-@router.post("/auth/login", response=TokenOut)
+@router.post("/auth/login", response={200: TokenOut, 401: ErrorSchema})
 async def login(request, payload: LoginIn):
     user = await aauthenticate(request, email=payload.email, password=payload.password)
     if not user:
