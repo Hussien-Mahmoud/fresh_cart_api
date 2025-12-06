@@ -67,7 +67,7 @@ async def add_to_cart(request, payload: CartItemIn):
     updated = await CartItem.objects.filter(cart=cart, product=product).aupdate(quantity=F('quantity') + payload.quantity)
     if not updated:
         # If no rows were updated, the item doesn't exist. Create it.
-        item = CartItem(cart=cart, product_id=product, quantity=payload.quantity)
+        item = CartItem(cart=cart, product=product, quantity=payload.quantity)
         await item.asave()
 
     return await serialize_cart(cart)
