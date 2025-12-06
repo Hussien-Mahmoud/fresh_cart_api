@@ -12,3 +12,4 @@ redis
 cloudinary
 django-cloudinary-storage
 requests
+django-cachalot

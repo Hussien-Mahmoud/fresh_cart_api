@@ -25,8 +25,9 @@ async def serialize_cart(cart) -> CartOut:
             'product__category', 'product__brand'
         )
         .annotate(avarage_rating=Avg("product__ratings__rating"))
-        .annotate(line_total=F("product__price") * F("quantity"))
+        .annotate(line_total=F("product__price") * F("quantity")).all()
     )
+    cart._prefetched_objects_cache = {"items": items}
 
     # item_schemas: List[CartItemOut] = []
     # for item in items:
@@ -59,16 +60,16 @@ async def get_cart(request):
 @router.post("/cart", response=CartOut)
 async def add_to_cart(request, payload: CartItemIn):
     cart = await get_or_create_open_cart(request.user)
-    product = await sync_to_async(Product.objects.filter(pk=payload.product_id, is_active=True).first)()
+    product = await Product.objects.filter(pk=payload.product_id, is_active=True).only('id').afirst()
     if not product:
-        raise Http404
-    item = await sync_to_async(CartItem.objects.filter(cart=cart, product=product).first)()
-    if item:
-        item.quantity += payload.quantity
+        raise Http404("Product not found")
+
+    updated = await CartItem.objects.filter(cart=cart, product=product).aupdate(quantity=F('quantity') + payload.quantity)
+    if not updated:
+        # If no rows were updated, the item doesn't exist. Create it.
+        item = CartItem(cart=cart, product_id=product, quantity=payload.quantity)
         await item.asave()
-    else:
-        item = CartItem(cart=cart, product=product, quantity=payload.quantity)
-        await item.asave()
+
     return await serialize_cart(cart)
 
 
@@ -77,10 +78,10 @@ async def update_cart_item(request, payload: CartItemIn):
     cart = await get_or_create_open_cart(request.user)
     product = await sync_to_async(Product.objects.filter(pk=payload.product_id, is_active=True).first)()
     if not product:
-        raise Http404
+        raise Http404("Product not found")
     item = await sync_to_async(CartItem.objects.filter(cart=cart, product=product).first)()
     if not item:
-        raise Http404
+        raise Http404("Item not found in cart")
 
     if payload.quantity <= 0:
         await item.adelete()

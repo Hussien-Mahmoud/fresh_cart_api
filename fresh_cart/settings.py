@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     'ninja_extra',
     'cloudinary',
     'cloudinary_storage',
-    # 'cachalot',
+    'cachalot',
 
     # Local apps
     'base',
@@ -219,3 +219,5 @@ CACHES = {
 
 # Default number of items in pagination for Ninja
 NINJA_PAGINATION_PER_PAGE = 10
+
+CACHALOT_ENABLED = os.getenv('ENABLE_CACHALOT', 'True') == 'True'
