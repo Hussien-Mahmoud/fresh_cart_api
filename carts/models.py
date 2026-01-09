@@ -15,7 +15,7 @@ class Coupon(models.Model):
     ]
     code = models.CharField(max_length=50, unique=True)
     discount_type = models.CharField(max_length=10, choices=DISCOUNT_TYPE_CHOICES, default=PERCENT)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)   # if a percent then for example value of 10 means 10%
     active = models.BooleanField(default=True)
     valid_from = models.DateTimeField(null=True, blank=True)
     valid_to = models.DateTimeField(null=True, blank=True)

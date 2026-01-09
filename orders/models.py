@@ -52,6 +52,8 @@ class Order(models.Model):
     def items_total(self):
         # return OrderItem.objects.filter(order=self).aggregate(total=Sum(F('unit_price') * F('quantity'), default=0))['total']
         total = 0
+        # self.items.all() is a  database hit in case of not caching `items`
+        # which is originally a reverse foreign key from orderItem
         for item in self.items.all():
             total += item.line_total
         return total

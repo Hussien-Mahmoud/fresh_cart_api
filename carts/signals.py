@@ -13,5 +13,6 @@ def empty_cart_on_checkout(sender, instance, **kwargs):
                 and instance.status == Cart.STATUS_CHECKED_OUT
             ):
                 instance.items.all().delete()
+                instance.coupon = None
         except Cart.DoesNotExist:
             pass

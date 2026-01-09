@@ -4,17 +4,13 @@ from ninja import Router
 from ninja_jwt.authentication import AsyncJWTAuth
 from django.http import Http404
 from decimal import Decimal
-import stripe
-from django.conf import settings
 
 from .models import Order, OrderItem
 from .schemas import OrderCreateIn, OrderOut, OrderItemOut
 
 from carts.models import Cart
-from payments.models import Payment
 from users.models import Address
 
-from payments.schemas import StripeCheckoutOut
 from base.schemas import ErrorSchema
 
 router = Router(auth=AsyncJWTAuth(), tags=["orders"])
@@ -129,52 +125,3 @@ async def get_order(request, order_id: int):
     if not order:
         raise Http404("Order not found")
     return await serialize_order(order)
-
-
-@router.post("/orders/{order_id}/pay/stripe", response=StripeCheckoutOut)
-async def pay_order_stripe(request, order_id: int):
-    order = await sync_to_async(Order.objects.filter(pk=order_id, user=request.user).first)()
-    if not order:
-        raise Http404
-
-    stripe.api_key = settings.STRIPE_SECRET_KEY
-
-    line_items = []
-    items = await sync_to_async(list)(order.items.all())
-    for it in items:
-        line_items.append({
-            'price_data': {
-                'currency': 'usd',
-                'product_data': {
-                    'name': it.product_name,
-                },
-                'unit_amount': int(Decimal(it.unit_price) * 100),
-            },
-            'quantity': it.quantity,
-        })
-
-    success_url = 'https://example.com/success?session_id={CHECKOUT_SESSION_ID}'
-    cancel_url = 'https://example.com/cancel'
-
-    session = await sync_to_async(stripe.checkout.Session.create)(
-        mode='payment',
-        line_items=line_items,
-        success_url=success_url,
-        cancel_url=cancel_url,
-        metadata={'order_id': str(order.id), 'user_id': str(request.user.id)},
-    )
-
-    order.stripe_session_id = session['id']
-    await sync_to_async(order.save)()
-
-    # Create Payment placeholder
-    payment, _created = await sync_to_async(Payment.objects.get_or_create)(
-        order=order,
-        defaults={
-            'amount': order.total_amount,
-            'currency': 'usd',
-            'status': 'created',
-        }
-    )
-
-    return StripeCheckoutOut(checkout_url=session['url'], session_id=session['id'])

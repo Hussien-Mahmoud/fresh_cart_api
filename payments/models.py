@@ -8,7 +8,7 @@ class Payment(models.Model):
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='payment')
     provider = models.CharField(max_length=50, default=PROVIDER_STRIPE)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    currency = models.CharField(max_length=10, default='usd')
+    currency = models.CharField(max_length=10, default='EGP')
     status = models.CharField(max_length=50, default='created')
     payment_intent_id = models.CharField(max_length=255, blank=True)
     charge_id = models.CharField(max_length=255, blank=True)
