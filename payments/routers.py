@@ -1,5 +1,6 @@
 from asgiref.sync import sync_to_async
 from ninja import Router
+from ninja_jwt.authentication import AsyncJWTAuth
 from django.conf import settings
 import stripe
 
@@ -11,7 +12,7 @@ from .schemas import StripeCheckoutOut, WebhookOut
 
 router = Router(tags=["payments"])
 
-@router.post("/payments/stripe/order/{order_id}", response={200: StripeCheckoutOut, 400: ErrorSchema, 404: ErrorSchema})
+@router.post("/payments/stripe/order/{order_id}",auth=AsyncJWTAuth(), response={200: StripeCheckoutOut, 400: ErrorSchema, 404: ErrorSchema})
 async def pay_order_stripe(request, order_id: int):
 
     # 1. Validates the order exists and belongs to the authenticated user and not paid yet
