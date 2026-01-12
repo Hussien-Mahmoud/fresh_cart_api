@@ -12,12 +12,11 @@ from .schemas import StripeCheckoutOut, WebhookOut
 
 router = Router(tags=["payments"])
 
-@router.post("/payments/stripe/order/{order_id}",auth=AsyncJWTAuth(), response={200: StripeCheckoutOut, 400: ErrorSchema, 404: ErrorSchema})
+@router.post("/payments/stripe/order/{order_id}", auth=AsyncJWTAuth(), response={200: StripeCheckoutOut, 400: ErrorSchema, 404: ErrorSchema})
 async def pay_order_stripe(request, order_id: int):
 
     # 1. Validates the order exists and belongs to the authenticated user and not paid yet
-    user = await request.auser()
-    order = await Order.objects.filter(pk=order_id, user=user).select_related("address").prefetch_related("items", "items__product").afirst()
+    order = await Order.objects.filter(pk=order_id, user=request.user).select_related("address").prefetch_related("items", "items__product").afirst()
     if not order:
         return 404, {"detail": "Order not found"}
 
@@ -62,7 +61,7 @@ async def pay_order_stripe(request, order_id: int):
         line_items=line_items,
         success_url=success_url,
         cancel_url=cancel_url,
-        customer_email=user.email,
+        customer_email=request.user.email,
         discounts=[{"coupon": coupon_id}] if coupon_id else None,
         metadata={'order_id': str(order.id), 'user_id': str(order.user_id)},
     )
